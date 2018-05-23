@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+# vim: set syntax=python:
+
+import sys
+import os
+
+story_number_temp_file = '/tmp/story_number'
+
+
+def print_and_read():
+    # needed to run raw_input in git-hook
+    sys.stdin = open('/dev/tty')
+    try:
+        user_input = raw_input('')
+    except KeyboardInterrupt:
+        print "Canceled by user!"
+        sys.exit(1)
+    if not user_input:
+        return ''
+    return user_input
+
+def get_marker_from_user():
+    output_list = ['[']
+    sys.stdout.write('What is your story number? [{}] (Enter to use last story number) '.format(read_last_story_number()))
+    story_number = print_and_read()
+    if not story_number:
+        output_list.append(read_last_story_number())
+    else:
+        output_list.append('#' + story_number)
+    store_last_story_number(story_number)
+    output_list.append('] - ')
+    sys.stdout.write('What did you do in this commit? ')
+    output_list.append(print_and_read())
+    return ''.join(output_list)
+
+def prepend_to_file(marker):
+    with open(sys.argv[1], 'r') as message_file:
+        lines = message_file.readlines()
+        lines[0] = marker + lines[0] + '\n'
+    with open(sys.argv[1], 'w') as message_file:
+        message_file.write(''.join(lines))
+
+def read_last_story_number(): 
+    try:
+        with open(story_number_temp_file, 'r') as story_number_file:
+            return '#' + story_number_file.readline()
+    except IOError:
+        return ''
+
+
+def store_last_story_number(story_number): 
+    with open(story_number_temp_file, 'w+') as story_number_file:
+        story_number_file.write(str(story_number))
+
+
+if __name__ == '__main__':
+    prepend_to_file(get_marker_from_user())
